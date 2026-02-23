@@ -1,6 +1,6 @@
 [package]
 name = "mimalloc"
-version = "2.2.7"
+version = "1.9.7"
 edition = "2024"
 rust-version = "1.85"
 authors = ["amsokol"]
