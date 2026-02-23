@@ -41,7 +41,7 @@ Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", branch = "v2.2.7", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.2.7", features = ["secure"] }
 ```
 
 ## API
