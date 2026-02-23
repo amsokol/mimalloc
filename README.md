@@ -13,7 +13,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.2.7" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.2.8" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
