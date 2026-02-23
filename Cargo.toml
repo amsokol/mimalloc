@@ -1,0 +1,19 @@
+[package]
+name = "mimalloc"
+version = "2.2.7"
+edition = "2024"
+rust-version = "1.85"
+authors = ["amsokol"]
+description = "Rust wrapper for Microsoft's mimalloc allocator — a compact general purpose allocator with excellent performance"
+license = "MIT"
+repository = "https://github.com/amsokol/mimalloc"
+keywords = ["allocator", "mimalloc", "global-allocator", "memory"]
+categories = ["memory-management", "api-bindings"]
+
+[features]
+default = []
+secure = []
+override = []
+
+[build-dependencies]
+cc = "1.2.56"
