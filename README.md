@@ -7,13 +7,41 @@ Rust wrapper for Microsoft's [mimalloc](https://github.com/microsoft/mimalloc) â
 - Rust 1.85+ (edition 2024)
 - A C compiler (automatically invoked via the [`cc`](https://crates.io/crates/cc) crate)
 
+## Updating the mimalloc submodule
+
+To checkout a specific release tag of [microsoft/mimalloc](https://github.com/microsoft/mimalloc), use:
+
+```bash
+# Clone with submodules
+git clone --recurse-submodules https://github.com/amsokol/mimalloc.git
+
+# Or update existing submodule to a specific tag
+cd c_src/mimalloc
+git fetch origin
+git checkout v3.3.2  # Replace with desired tag
+cd ../..
+git add c_src/mimalloc
+git commit -m "Update mimalloc to v3.3.2"
+```
+
+Or checkout a specific commit:
+
+```bash
+cd c_src/mimalloc
+git fetch origin
+git checkout 30b2d9d89099bee08e9f67a1ffb3e12e7ba45227
+cd ../..
+git add c_src/mimalloc
+git commit -m "Pin mimalloc to specific commit"
+```
+
 ## Usage
 
 Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.1" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -41,7 +69,7 @@ Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.1", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2", features = ["secure"] }
 ```
 
 ## API
