@@ -1,4 +1,4 @@
-//! Rust bindings for [mimalloc](https://github.com/microsoft/mimalloc) v3.2.8 —
+//! Rust bindings for [mimalloc](https://github.com/microsoft/mimalloc) v3.4.1 —
 //! a compact general purpose allocator with excellent performance by Microsoft Research.
 //!
 //! # Usage
@@ -22,6 +22,7 @@ unsafe extern "C" {
     fn mi_free(p: *mut c_void);
 
     fn mi_malloc_aligned(size: usize, alignment: usize) -> *mut c_void;
+    fn mi_zalloc_aligned(size: usize, alignment: usize) -> *mut c_void;
     fn mi_realloc_aligned(p: *mut c_void, newsize: usize, alignment: usize) -> *mut c_void;
 
     fn mi_usable_size(p: *const c_void) -> usize;
@@ -59,11 +60,7 @@ unsafe impl GlobalAlloc for MiMalloc {
         if layout.align() <= MIN_ALIGN && layout.align() <= layout.size() {
             unsafe { mi_calloc(1, layout.size()) as *mut u8 }
         } else {
-            let ptr = unsafe { mi_malloc_aligned(layout.size(), layout.align()) as *mut u8 };
-            if !ptr.is_null() {
-                unsafe { std::ptr::write_bytes(ptr, 0, layout.size()) };
-            }
-            ptr
+            unsafe { mi_zalloc_aligned(layout.size(), layout.align()) as *mut u8 }
         }
     }
 
@@ -164,6 +161,19 @@ mod tests {
             let ptr = ALLOC.alloc(layout);
             assert!(!ptr.is_null());
             assert_eq!(ptr as usize % 256, 0, "pointer should be 256-byte aligned");
+            ALLOC.dealloc(ptr, layout);
+        }
+    }
+
+    #[test]
+    fn aligned_alloc_zeroed() {
+        unsafe {
+            let layout = Layout::from_size_align(64, 256).unwrap();
+            let ptr = ALLOC.alloc_zeroed(layout);
+            assert!(!ptr.is_null());
+            assert_eq!(ptr as usize % 256, 0, "pointer should be 256-byte aligned");
+            let slice = std::slice::from_raw_parts(ptr, 64);
+            assert!(slice.iter().all(|&b| b == 0));
             ALLOC.dealloc(ptr, layout);
         }
     }

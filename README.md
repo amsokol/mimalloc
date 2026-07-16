@@ -18,10 +18,10 @@ git clone --recurse-submodules https://github.com/amsokol/mimalloc.git
 # Or update existing submodule to a specific tag
 cd c_src/mimalloc
 git fetch origin
-git checkout v3.3.2  # Replace with desired tag
+git checkout v3.4.1  # Replace with desired tag
 cd ../..
 git add c_src/mimalloc
-git commit -m "Update mimalloc to v3.3.2"
+git commit -m "Update mimalloc to v3.4.1"
 ```
 
 Or checkout a specific commit:
@@ -41,7 +41,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.1" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -60,16 +60,16 @@ fn main() {
 
 ## Features
 
-| Feature    | Description                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------- |
-| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation         |
-| `override` | Overrides the standard C `malloc`/`free` interface so all C library allocations also use mimalloc |
+| Feature    | Description                                                                                                                                           |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation                                                             |
+| `override` | Overrides the standard C `malloc`/`free` interface so all C library allocations also use mimalloc (Unix/macOS only; ignored on Windows static builds) |
 
 Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.1", features = ["secure"] }
 ```
 
 ## API
