@@ -38,6 +38,22 @@ jobs:
       - name: Test
         run: cargo test --verbose --features "${{ matrix.config.features }}"
 
+      - name: Show build script output on failure
+        if: failure()
+        shell: bash
+        run: |
+          echo "== OUT_DIR build scripts =="
+          find target -path '*/build/mimalloc-*/out' -type d 2>/dev/null | head -5
+          find target -name 'build-script-build*' -o -name 'output' 2>/dev/null | head -20
+          # Cargo stores stderr from build scripts under target/*/build/*/stderr or in verbose log above
+          ls -la target/debug/build/ 2>/dev/null | head -30 || true
+          for d in target/debug/build/mimalloc-*; do
+            echo "---- $d ----"
+            ls -la "$d" 2>/dev/null || true
+            [ -f "$d/stderr" ] && echo 'stderr:' && cat "$d/stderr"
+            [ -f "$d/stdout" ] && echo 'stdout:' && cat "$d/stdout"
+          done
+
   msrv:
     name: msrv / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -59,3 +75,14 @@ jobs:
 
       - name: Test
         run: cargo test --verbose
+
+      - name: Show build script output on failure
+        if: failure()
+        shell: bash
+        run: |
+          for d in target/debug/build/mimalloc-*; do
+            echo "---- $d ----"
+            ls -la "$d" 2>/dev/null || true
+            [ -f "$d/stderr" ] && echo 'stderr:' && cat "$d/stderr"
+            [ -f "$d/stdout" ] && echo 'stdout:' && cat "$d/stdout"
+          done

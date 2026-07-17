@@ -1,5 +1,4 @@
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 
 fn main() {
@@ -26,25 +25,22 @@ fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
 
     // Mimalloc expects MSVC/clang-cl builds to use the C++ atomics path.
-    // The wrapper must #include an absolute path: MSVC resolves includes
-    // relative to the wrapper file in OUT_DIR, not the crate root.
+    // `cpp(true)` alone is not enough: cc does not force C++ for `.c` files, so
+    // pass `/TP` (MSVC) / `-xc++` (clang-cl) and compile static.c directly.
+    // Avoid a OUT_DIR wrapper + #include: Path::canonicalize() on Windows can
+    // produce a `\\?\` prefix that MSVC cannot open.
     if target_env == "msvc" {
         build.cpp(true);
         build.std("c++17");
         build.flag_if_supported("/Zc:__cplusplus");
-
-        let wrapper = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("mimalloc-static.cc");
-        let include = static_source
-            .canonicalize()
-            .unwrap_or(static_source.clone())
-            .to_string_lossy()
-            .replace('\\', "/");
-        fs::write(&wrapper, format!("#include \"{include}\"\n"))
-            .expect("failed to write mimalloc C++ wrapper");
-        build.file(wrapper);
-    } else {
-        build.file(&static_source);
+        let compiler = build.get_compiler();
+        if compiler.is_like_msvc() {
+            build.flag("/TP");
+        } else {
+            build.flag_if_supported("-xc++");
+        }
     }
+    build.file(&static_source);
 
     if cfg!(feature = "secure") {
         build.define("MI_SECURE", "4");
