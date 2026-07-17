@@ -1,6 +1,6 @@
 [package]
 name = "mimalloc"
-version = "1.9.9"
+version = "1.9.11"
 edition = "2024"
 rust-version = "1.85"
 authors = ["amsokol"]
@@ -16,4 +16,4 @@ secure = []
 override = []
 
 [build-dependencies]
-cc = "1.2.60"
+cc = "1.2.67"
