@@ -1,9 +1,10 @@
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn main() {
-    let mimalloc_root = Path::new("c_src/mimalloc");
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let mimalloc_root = manifest_dir.join("c_src").join("mimalloc");
     let include_dir = mimalloc_root.join("include");
     let src_dir = mimalloc_root.join("src");
     let static_source = src_dir.join("static.c");
@@ -25,13 +26,19 @@ fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
 
     // Mimalloc expects MSVC/clang-cl builds to use the C++ atomics path.
+    // The wrapper must #include an absolute path: MSVC resolves includes
+    // relative to the wrapper file in OUT_DIR, not the crate root.
     if target_env == "msvc" {
         build.cpp(true);
         build.std("c++17");
         build.flag_if_supported("/Zc:__cplusplus");
 
         let wrapper = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("mimalloc-static.cc");
-        let include = static_source.to_string_lossy().replace('\\', "/");
+        let include = static_source
+            .canonicalize()
+            .unwrap_or(static_source.clone())
+            .to_string_lossy()
+            .replace('\\', "/");
         fs::write(&wrapper, format!("#include \"{include}\"\n"))
             .expect("failed to write mimalloc C++ wrapper");
         build.file(wrapper);
