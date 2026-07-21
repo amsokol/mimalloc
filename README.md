@@ -18,10 +18,10 @@ git clone --recurse-submodules https://github.com/amsokol/mimalloc.git
 # Or update existing submodule to a specific tag
 cd c_src/mimalloc
 git fetch origin
-git checkout v3.4.1  # Replace with desired tag
+git checkout v3.4.3  # Replace with desired tag
 cd ../..
 git add c_src/mimalloc
-git commit -m "Update mimalloc to v3.4.1"
+git commit -m "Update mimalloc to v3.4.3"
 ```
 
 Or checkout a specific commit:
@@ -29,7 +29,7 @@ Or checkout a specific commit:
 ```bash
 cd c_src/mimalloc
 git fetch origin
-git checkout 30b2d9d89099bee08e9f67a1ffb3e12e7ba45227
+git checkout 152fbf2634aeafca3774df791b0a77683035f076
 cd ../..
 git add c_src/mimalloc
 git commit -m "Pin mimalloc to specific commit"
@@ -41,7 +41,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.1" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.3" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -69,7 +69,7 @@ Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.1", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.3", features = ["secure"] }
 ```
 
 ## API
