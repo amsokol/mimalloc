@@ -1,4 +1,4 @@
-//! Rust bindings for [mimalloc](https://github.com/microsoft/mimalloc) v3.4.3 —
+//! Rust bindings for [mimalloc](https://github.com/microsoft/mimalloc) v3.4.4 —
 //! a compact general purpose allocator with excellent performance by Microsoft Research.
 //!
 //! # Usage
