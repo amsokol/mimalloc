@@ -13,7 +13,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.1" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.4" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -32,16 +32,16 @@ fn main() {
 
 ## Features
 
-| Feature    | Description                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------- |
-| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation         |
+| Feature    | Description                                                                                                                                           |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation                                                             |
 | `override` | Overrides the standard C `malloc`/`free` interface so all C library allocations also use mimalloc (Unix/macOS only; ignored on Windows static builds) |
 
 Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.1", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.4", features = ["secure"] }
 ```
 
 ## API
