@@ -13,7 +13,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.4" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.5" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -41,7 +41,7 @@ Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.4", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v2.4.5", features = ["secure"] }
 ```
 
 ## API
