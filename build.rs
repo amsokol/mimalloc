@@ -46,6 +46,12 @@ fn main() {
         build.define("MI_SECURE", "4");
     }
 
+    // Same as mimalloc's CMake option MI_NO_THP: allow_thp defaults to 0, so
+    // THP is off from process start (prctl(PR_SET_THP_DISABLE) at init).
+    if cfg!(feature = "no_thp") && (target_os == "linux" || target_os == "android") {
+        build.define("MI_DEFAULT_ALLOW_THP", "0");
+    }
+
     // Static malloc override is not supported on Windows; skip it there.
     if cfg!(feature = "override") && target_family != "windows" {
         build.define("MI_MALLOC_OVERRIDE", None);

@@ -11,6 +11,27 @@
 //! #[global_allocator]
 //! static GLOBAL: MiMalloc = MiMalloc;
 //! ```
+//!
+//! # Tuning and process information
+//!
+//! [`Option`] reads and sets mimalloc's runtime options, such as the purge
+//! delay or transparent huge pages; each variant documents when mimalloc reads
+//! it. [`process_info`] returns the process's time and memory counters, and
+//! [`collect`] returns free memory of the calling thread's heap to the OS.
+//!
+//! ```rust
+//! // Return freed memory to the OS at once instead of after 4 seconds.
+//! mimalloc::Option::PurgeDelay.set(0);
+//!
+//! let info = mimalloc::process_info();
+//! println!("rss {} bytes, peak {} bytes", info.current_rss, info.peak_rss);
+//! ```
+
+mod option;
+mod process;
+
+pub use option::Option;
+pub use process::{ProcessInfo, collect, process_info};
 
 use std::alloc::{GlobalAlloc, Layout};
 use std::ffi::c_void;

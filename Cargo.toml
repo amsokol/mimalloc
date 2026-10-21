@@ -1,19 +1,19 @@
 [package]
 name = "mimalloc"
-version = "3.5.3"
+version = "3.5.3+1"
 edition = "2024"
 rust-version = "1.85"
-authors = ["amsokol"]
 description = "Rust wrapper for Microsoft's mimalloc allocator — a compact general purpose allocator with excellent performance"
-license = "MIT"
 repository = "https://github.com/amsokol/mimalloc"
-keywords = ["allocator", "mimalloc", "global-allocator", "memory"]
-categories = ["memory-management", "api-bindings"]
+license = "MIT"
+keywords = ["allocator", "global-allocator", "memory", "mimalloc"]
+categories = ["api-bindings", "memory-management"]
+
+[build-dependencies]
+cc = "1.8"
 
 [features]
 default = []
-secure = []
 override = []
-
-[build-dependencies]
-cc = "1.4.6"
+no_thp = []
+secure = []
