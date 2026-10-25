@@ -253,16 +253,21 @@ pub enum Option {
     StatsMergeOnCollect = 47,
     /// Bytes allocated between automatic snapshots of the heap profiler
     /// (default: 1 GiB); 0 disables them. The profiler runs only when
-    /// `MIMALLOC_PROFILE` is set. [`Option::get_size`] returns bytes.
+    /// `MIMALLOC_PROFILE` is set, and reads this option once at process
+    /// start, so setting it from `main` has no effect: use
+    /// `MIMALLOC_PROFILE_ALLOC_INTERVAL`. [`Option::get_size`] returns bytes.
     ProfileAllocInterval = 48,
     /// Take a heap-profiler snapshot whenever the in-use bytes have grown by
-    /// this much (default: 0, off). Only used with `MIMALLOC_PROFILE`.
+    /// this much (default: 0, off). Only used with `MIMALLOC_PROFILE`, and read
+    /// once at process start, as for [`Option::ProfileAllocInterval`].
     ProfileInuseInterval = 49,
     /// Seconds between automatic heap-profiler snapshots (default: 0, off).
-    /// Only used with `MIMALLOC_PROFILE`.
+    /// Only used with `MIMALLOC_PROFILE`, and read once at process start, as
+    /// for [`Option::ProfileAllocInterval`].
     ProfileTimeInterval = 50,
     /// Heap-profiler sampling rate, in bytes (default: 512 KiB). Only used
-    /// with `MIMALLOC_PROFILE`.
+    /// with `MIMALLOC_PROFILE`, and read once at process start, as for
+    /// [`Option::ProfileAllocInterval`].
     ProfileSampleRate = 51,
     /// Merge a thread heap's statistics into its parent heap once this many
     /// bytes were allocated or freed on a page; 0 disables (default: 512 KiB).
