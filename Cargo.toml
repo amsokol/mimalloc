@@ -1,6 +1,6 @@
 [package]
 name = "mimalloc"
-version = "3.5.3+1"
+version = "3.6.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Rust wrapper for Microsoft's mimalloc allocator — a compact general purpose allocator with excellent performance"

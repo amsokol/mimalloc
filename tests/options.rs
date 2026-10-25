@@ -45,7 +45,7 @@ fn options() {
     // `Option::ALL[i]` must sit at its index among the non-deprecated ones,
     // and print the same value `get` returns.
     let printed = printed_options();
-    assert_eq!(printed.len(), 48, "mimalloc 3.5.3 has 48 options");
+    assert_eq!(printed.len(), 54, "mimalloc 3.6.0 has 54 options");
     let live: Vec<(usize, &(String, i64))> = printed
         .iter()
         .enumerate()

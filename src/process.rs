@@ -139,7 +139,11 @@ fn linux_vm_rss() -> std::option::Option<u64> {
 /// retired pages at once, and purges every range that is waiting for its
 /// purge delay without waiting for it. Purge passes only run while the delay
 /// is positive: with [`Option::PurgeDelay`](crate::Option::PurgeDelay) at 0
-/// memory is purged as it is freed, and with a negative delay never.
+/// memory is purged as it is freed, and with a negative delay never. Since
+/// mimalloc 3.6.0 a freed range of at least
+/// [`Option::ArenaPurgeImmediateSize`](crate::Option::ArenaPurgeImmediateSize)
+/// (32 MiB by default) is also purged as it is freed, so it never waits for a
+/// pass.
 ///
 /// It only collects the calling thread's heap; other threads collect their
 /// own heaps as they allocate.

@@ -18,10 +18,10 @@ git clone --recurse-submodules https://github.com/amsokol/mimalloc.git
 # Or update existing submodule to a specific tag
 cd c_src/mimalloc
 git fetch origin
-git checkout v3.5.3  # Replace with desired tag
+git checkout v3.6.0  # Replace with desired tag
 cd ../..
 git add c_src/mimalloc
-git commit -m "Update mimalloc to v3.5.3"
+git commit -m "Update mimalloc to v3.6.0"
 ```
 
 Or checkout a specific commit:
@@ -41,7 +41,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.5.3+1" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.0" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -70,7 +70,7 @@ Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.5.3+1", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.0", features = ["secure"] }
 ```
 
 ## API
@@ -85,12 +85,12 @@ Returns the usable size of an allocated memory block. The returned size can be l
 
 ### `Option`
 
-mimalloc's runtime options (`mi_option_t`), one variant per option of mimalloc 3.5.3 except the deprecated ones. Refer to it as `mimalloc::Option`, since importing it shadows `std::option::Option`.
+mimalloc's runtime options (`mi_option_t`), one variant per option of mimalloc 3.6.0 except the deprecated ones. Refer to it as `mimalloc::Option`, since importing it shadows `std::option::Option`.
 
 - `Option::get(self) -> i64`, `Option::set(self, i64)`: read and set the value (`mi_option_get`, `mi_option_set`).
 - `Option::is_enabled(self) -> bool`, `Option::set_enabled(self, bool)`: the same as non-zero / 1 or 0.
 - `Option::get_size(self) -> usize`: the value in bytes for the options kept in KiB.
-- `Option::name(self) -> &'static str`: the name in `options.c`; `MIMALLOC_<NAME>` is its environment variable.
+- `Option::name(self) -> &'static str`: the name in `util/options.c`; `MIMALLOC_<NAME>` is its environment variable.
 - `Option::ALL`: every option.
 
 ### `process_info() -> ProcessInfo`
@@ -117,7 +117,7 @@ A program can get the same result without environment variables:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.5.3+1", features = ["no_thp"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.0", features = ["no_thp"] }
 ```
 
 ```rust
@@ -134,12 +134,14 @@ fn main() {
 | - | - | - | - |
 | `PurgeDelay` | 1000 | Milliseconds before freed memory is purged; 0 = at once, < 0 = never. Arenas wait `purge_delay × arena_purge_mult` | Applies to everything freed afterwards, in every arena. Ranges already scheduled under a positive delay are not purged any more once it is 0 |
 | `ArenaPurgeMult` | 4 | Multiplier on `purge_delay` inside arenas; 0 = at once | Applies to everything freed afterwards |
+| `ArenaPurgeImmediateSize` | 32 MiB | Freed ranges at least this large (KiB) are purged at once, whatever `purge_delay` (new in mimalloc 3.6.0; a negative delay still never purges) | Applies to everything freed afterwards |
 | `AllowThp` | 2 | THP on Linux/Android: 0 = off, 1 = on, 2 = on and purge whole 2 MiB only (0 on Android) | Partly. Purge granularity changes at once; arenas reserved later are not marked `MADV_HUGEPAGE`; but the first arena stays marked and the process-wide `prctl(PR_SET_THP_DISABLE)` is only done at start. Use the `no_thp` feature or `MIMALLOC_ALLOW_THP=0` |
-| `MinimalPurgeSize` | 0 | Smallest purge in KiB; 0 = OS page, or 2 MiB with `allow_thp` 2. Not applied when purging is immediate | Applies to later purge passes |
+| `ArenaPurgeMinSize` | 0 | Smallest purge in KiB; 0 = OS page, or 2 MiB with `allow_thp` 2. Not applied when purging is immediate, including ranges over `arena_purge_immediate_size` | Applies to later purge passes |
 | `PurgeDecommits` | 1 | Purge by decommitting (1) or by resetting with `MADV_FREE` (0) | Applies to later purges |
 | `ArenaReserve` | 1 GiB | Size of a new arena, in KiB | Arenas reserved afterwards |
 | `ArenaEagerCommit` | 2 | Commit arenas when reserved: 0 no, 1 yes, 2 on overcommit systems | Arenas reserved afterwards |
 | `ArenaMaxObjectSize` | 2 GiB | Larger objects are mapped from the OS directly | Later allocations |
+| `PageReclaimOnFree` | 1 (0 before mimalloc 3.6.0) | Reclaim abandoned pages on free: -1 never, 0 only into the heap they came from, 1 into any heap | No: each heap copies it when it is created, and the global allocator's heap exists before `main`. Use `MIMALLOC_PAGE_RECLAIM_ON_FREE=0` for the 3.5 behaviour |
 | `PageFullRetain` | 2 | Full small pages a thread keeps per size class | Threads started afterwards |
 | `PageCommitOnDemand` | 0 | Commit page memory on demand: 0 no, 1 yes, 2 without overcommit | Later page allocations |
 | `ShowStats`, `Verbose`, `ShowErrors` | off | Print statistics at exit, verbose messages, errors | Yes |

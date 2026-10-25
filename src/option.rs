@@ -12,9 +12,9 @@ unsafe extern "C" {
 
 /// A mimalloc runtime option (`mi_option_t` in `mimalloc.h`).
 ///
-/// Every option of mimalloc 3.5.3 is listed except the `deprecated_*` ones,
+/// Every option of mimalloc 3.6.0 is listed except the `deprecated_*` ones,
 /// which mimalloc no longer reads. Each variant is named after the option in
-/// `options.c`; [`Option::name`] gives that name, and `MIMALLOC_<NAME>` is the
+/// `util/options.c`; [`Option::name`] gives that name, and `MIMALLOC_<NAME>` is the
 /// environment variable that sets it.
 ///
 /// This type shadows [`std::option::Option`] when imported, so refer to it as
@@ -87,7 +87,9 @@ pub enum Option {
     /// Delay, in milliseconds, before freed memory is purged (returned to the
     /// OS): 0 purges at once, a negative value never purges (default: 1000).
     /// Memory inside arenas waits `purge_delay × arena_purge_mult` ms, so
-    /// 4 s by default.
+    /// 4 s by default. Since mimalloc 3.6.0, a freed range of at least
+    /// [`Option::ArenaPurgeImmediateSize`] (32 MiB by default) is purged at
+    /// once whatever the delay, unless purging is off (a negative delay).
     ///
     /// Read on every free that schedules a purge and on every purge pass, so
     /// it applies to all memory freed after the call, including memory in
@@ -128,7 +130,8 @@ pub enum Option {
     /// purges at once, a negative value never purges (default: 4). Read on
     /// every free that schedules a purge and on every purge pass, like
     /// [`Option::PurgeDelay`], so it applies to all arenas, including those
-    /// reserved before `main`.
+    /// reserved before `main`. As with [`Option::PurgeDelay`], ranges of at
+    /// least [`Option::ArenaPurgeImmediateSize`] are purged at once.
     ArenaPurgeMult = 24,
     /// Do not allocate from arenas; take every page straight from the OS
     /// (default: off). Read on every page allocation.
@@ -146,8 +149,9 @@ pub enum Option {
     /// lowers that option too.
     GuardedMax = 30,
     /// Place guarded objects right before the guard page, ignoring their
-    /// alignment (default: off). No effect in this crate (no `MI_GUARDED`).
-    GuardedPrecise = 31,
+    /// alignment (default: off). Named `guarded_precise` before mimalloc
+    /// 3.6.0. No effect in this crate (no `MI_GUARDED`).
+    UnsafeGuardedPrecise = 31,
     /// Guard one in this many objects in the guarded size range
     /// (default: 0). No effect in this crate (no `MI_GUARDED`).
     GuardedSampleRate = 32,
@@ -158,9 +162,15 @@ pub enum Option {
     /// allocation path (default: 10000). Read on every slow-path allocation.
     GenericCollect = 34,
     /// Reclaim an abandoned page on free: -1 = never, 0 = only into the
-    /// thread heap it came from, 1 = into any heap (default: 0). Whether
-    /// reclaiming is allowed at all (≥ 0) is fixed per thread heap when the
-    /// thread starts; the 0/1 choice is read on every such free.
+    /// thread heap it came from, 1 = into any heap (default: 1; 0 before
+    /// mimalloc 3.6.0).
+    ///
+    /// Since mimalloc 3.6.0 this is only the default for new heaps: each heap
+    /// copies it when it is created. The heap behind the global allocator is
+    /// created before `main`, so setting the option from `main` does not
+    /// change it. To get the 3.5 behaviour, start the process with
+    /// `MIMALLOC_PAGE_RECLAIM_ON_FREE=0`. Before 3.6.0, the 0/1 choice was
+    /// read on every free.
     PageReclaimOnFree = 35,
     /// Number of full small pages a thread heap keeps per size class;
     /// -1 never abandons pages (default: 2). Per thread: applies to threads
@@ -204,12 +214,17 @@ pub enum Option {
     ///   first arena (1 GiB), reserved before `main` for the runtime's own
     ///   allocations, stays marked.
     /// - **On every delayed purge pass**: with 2 (and
-    ///   [`Option::MinimalPurgeSize`] at 0), mimalloc purges only whole 2 MiB
+    ///   [`Option::ArenaPurgeMinSize`] at 0), mimalloc purges only whole 2 MiB
     ///   ranges, so a huge page goes back to the OS only when all of it is
     ///   free. With 0 or 1 it purges in OS pages (4 KiB). This part takes
     ///   effect at once from `main`. It does not apply when purging is
     ///   immediate ([`Option::PurgeDelay`] or [`Option::ArenaPurgeMult`] 0):
     ///   then each freed range (64 KiB slices) is purged as it is freed.
+    ///
+    /// Since mimalloc 3.6.0, when the kernel's huge page size (read from
+    /// `hpage_pmd_size`) is over 8 MiB, as with 64 KiB pages on arm64,
+    /// mimalloc treats the system as having no THP and marks its mappings
+    /// `MADV_NOHUGEPAGE`.
     ///
     /// To ship a binary with THP off from the start, build this crate with
     /// the `no_thp` cargo feature (compiles in `MI_DEFAULT_ALLOW_THP=0`, as
@@ -217,12 +232,14 @@ pub enum Option {
     /// `MIMALLOC_ALLOW_THP=0` in the environment; the environment variable
     /// overrides the build-time default.
     AllowThp = 43,
-    /// Minimal size, in KiB, of a purge; 0 means the OS page size, or 2 MiB
+    /// Minimal size, in KiB, of a purge (named `minimal_purge_size` before
+    /// mimalloc 3.6.0); 0 means the OS page size, or 2 MiB
     /// when [`Option::AllowThp`] is 2 and the system has THP (default: 0).
     /// Read on every delayed purge pass; immediate purges
-    /// ([`Option::PurgeDelay`] 0) do not apply it. [`Option::get_size`]
+    /// ([`Option::PurgeDelay`] 0, or a range of at least
+    /// [`Option::ArenaPurgeImmediateSize`]) do not apply it. [`Option::get_size`]
     /// returns bytes.
-    MinimalPurgeSize = 44,
+    ArenaPurgeMinSize = 44,
     /// Largest object, in KiB, allocated inside an arena; larger ones are
     /// mapped from the OS directly (default: 2 GiB on 64-bit, 256 MiB on
     /// 32-bit). Read on every large allocation. [`Option::get_size`]
@@ -233,12 +250,36 @@ pub enum Option {
     ArenaIsNumaLocal = 46,
     /// Merge a thread heap's statistics into its parent heap on every
     /// collection (default: on). Read on every collection.
-    CollectMergesStats = 47,
+    StatsMergeOnCollect = 47,
+    /// Bytes allocated between automatic snapshots of the heap profiler
+    /// (default: 1 GiB); 0 disables them. The profiler runs only when
+    /// `MIMALLOC_PROFILE` is set. [`Option::get_size`] returns bytes.
+    ProfileAllocInterval = 48,
+    /// Take a heap-profiler snapshot whenever the in-use bytes have grown by
+    /// this much (default: 0, off). Only used with `MIMALLOC_PROFILE`.
+    ProfileInuseInterval = 49,
+    /// Seconds between automatic heap-profiler snapshots (default: 0, off).
+    /// Only used with `MIMALLOC_PROFILE`.
+    ProfileTimeInterval = 50,
+    /// Heap-profiler sampling rate, in bytes (default: 512 KiB). Only used
+    /// with `MIMALLOC_PROFILE`.
+    ProfileSampleRate = 51,
+    /// Merge a thread heap's statistics into its parent heap once this many
+    /// bytes were allocated or freed on a page; 0 disables (default: 512 KiB).
+    /// Read on every page statistics update.
+    StatsMergeThreshold = 52,
+    /// Freed ranges of at least this size, in KiB, are purged as soon as they
+    /// are freed instead of waiting for [`Option::PurgeDelay`] (default:
+    /// 32 MiB on 64-bit). New in mimalloc 3.6.0. It does not override a
+    /// negative delay, which never purges. Read on every free that schedules
+    /// a purge. [`Option::get_size`]
+    /// returns bytes.
+    ArenaPurgeImmediateSize = 53,
 }
 
 impl Option {
     /// All options, in the order of `mi_option_t`.
-    pub const ALL: [Option; 39] = [
+    pub const ALL: [Option; 45] = [
         Option::ShowErrors,
         Option::ShowStats,
         Option::Verbose,
@@ -261,7 +302,7 @@ impl Option {
         Option::RetryOnOom,
         Option::GuardedMin,
         Option::GuardedMax,
-        Option::GuardedPrecise,
+        Option::UnsafeGuardedPrecise,
         Option::GuardedSampleRate,
         Option::GuardedSampleSeed,
         Option::GenericCollect,
@@ -274,13 +315,19 @@ impl Option {
         Option::PageMaxReclaim,
         Option::PageCrossThreadMaxReclaim,
         Option::AllowThp,
-        Option::MinimalPurgeSize,
+        Option::ArenaPurgeMinSize,
         Option::ArenaMaxObjectSize,
         Option::ArenaIsNumaLocal,
-        Option::CollectMergesStats,
+        Option::StatsMergeOnCollect,
+        Option::ProfileAllocInterval,
+        Option::ProfileInuseInterval,
+        Option::ProfileTimeInterval,
+        Option::ProfileSampleRate,
+        Option::StatsMergeThreshold,
+        Option::ArenaPurgeImmediateSize,
     ];
 
-    /// The option's name in `options.c`, such as `"purge_delay"`. The
+    /// The option's name in `util/options.c`, such as `"purge_delay"`. The
     /// environment variable `MIMALLOC_<NAME>` (any case) sets it at start-up.
     pub const fn name(self) -> &'static str {
         match self {
@@ -306,7 +353,7 @@ impl Option {
             Option::RetryOnOom => "retry_on_oom",
             Option::GuardedMin => "guarded_min",
             Option::GuardedMax => "guarded_max",
-            Option::GuardedPrecise => "guarded_precise",
+            Option::UnsafeGuardedPrecise => "unsafe_guarded_precise",
             Option::GuardedSampleRate => "guarded_sample_rate",
             Option::GuardedSampleSeed => "guarded_sample_seed",
             Option::GenericCollect => "generic_collect",
@@ -319,18 +366,24 @@ impl Option {
             Option::PageMaxReclaim => "page_max_reclaim",
             Option::PageCrossThreadMaxReclaim => "page_cross_thread_max_reclaim",
             Option::AllowThp => "allow_thp",
-            Option::MinimalPurgeSize => "minimal_purge_size",
+            Option::ArenaPurgeMinSize => "arena_purge_min_size",
             Option::ArenaMaxObjectSize => "arena_max_object_size",
             Option::ArenaIsNumaLocal => "arena_is_numa_local",
-            Option::CollectMergesStats => "collect_merges_stats",
+            Option::StatsMergeOnCollect => "stats_merge_on_collect",
+            Option::ProfileAllocInterval => "profile_alloc_interval",
+            Option::ProfileInuseInterval => "profile_inuse_interval",
+            Option::ProfileTimeInterval => "profile_time_interval",
+            Option::ProfileSampleRate => "profile_sample_rate",
+            Option::StatsMergeThreshold => "stats_merge_threshold",
+            Option::ArenaPurgeImmediateSize => "arena_purge_immediate_size",
         }
     }
 
     /// Returns the option's current value (`mi_option_get`).
     ///
     /// Size options ([`Option::ReserveOsMemory`], [`Option::ArenaReserve`],
-    /// [`Option::MinimalPurgeSize`], [`Option::ArenaMaxObjectSize`]) are in
-    /// KiB; [`Option::get_size`] returns them in bytes.
+    /// [`Option::ArenaPurgeMinSize`], [`Option::ArenaPurgeImmediateSize`],
+    /// [`Option::ArenaMaxObjectSize`]) are in KiB; [`Option::get_size`] returns them in bytes.
     #[inline]
     #[allow(clippy::useless_conversion)] // C `long` is `i32` on Windows
     pub fn get(self) -> i64 {
