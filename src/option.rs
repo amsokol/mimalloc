@@ -12,7 +12,7 @@ unsafe extern "C" {
 
 /// A mimalloc runtime option (`mi_option_t` in `mimalloc.h`).
 ///
-/// Every option of mimalloc 3.6.0 is listed except the `deprecated_*` ones,
+/// Every option of mimalloc 3.6.1 is listed except the `deprecated_*` ones,
 /// which mimalloc no longer reads. Each variant is named after the option in
 /// `util/options.c`; [`Option::name`] gives that name, and `MIMALLOC_<NAME>` is the
 /// environment variable that sets it.
@@ -162,15 +162,15 @@ pub enum Option {
     /// allocation path (default: 10000). Read on every slow-path allocation.
     GenericCollect = 34,
     /// Reclaim an abandoned page on free: -1 = never, 0 = only into the
-    /// thread heap it came from, 1 = into any heap (default: 1; 0 before
-    /// mimalloc 3.6.0).
+    /// thread heap it came from, 1 = into any heap (default: 0; mimalloc 3.6.0
+    /// briefly made it 1, 3.6.1 went back to 0).
     ///
     /// Since mimalloc 3.6.0 this is only the default for new heaps: each heap
     /// copies it when it is created. The heap behind the global allocator is
     /// created before `main`, so setting the option from `main` does not
-    /// change it. To get the 3.5 behaviour, start the process with
-    /// `MIMALLOC_PAGE_RECLAIM_ON_FREE=0`. Before 3.6.0, the 0/1 choice was
-    /// read on every free.
+    /// change it; to change it, start the process with
+    /// `MIMALLOC_PAGE_RECLAIM_ON_FREE=<value>`. Before 3.6.0, the 0/1 choice
+    /// was read on every free.
     PageReclaimOnFree = 35,
     /// Number of full small pages a thread heap keeps per size class;
     /// -1 never abandons pages (default: 2). Per thread: applies to threads
@@ -270,7 +270,8 @@ pub enum Option {
     /// [`Option::ProfileAllocInterval`].
     ProfileSampleRate = 51,
     /// Merge a thread heap's statistics into its parent heap once this many
-    /// bytes were allocated or freed on a page; 0 disables (default: 512 KiB).
+    /// bytes were allocated or freed on a page; 0 disables (default: 4 MiB;
+    /// 512 KiB in mimalloc 3.6.0).
     /// Read on every page statistics update.
     StatsMergeThreshold = 52,
     /// Freed ranges of at least this size, in KiB, are purged as soon as they
