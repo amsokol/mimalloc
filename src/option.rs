@@ -12,8 +12,9 @@ unsafe extern "C" {
 
 /// A mimalloc runtime option (`mi_option_t` in `mimalloc.h`).
 ///
-/// Every option of mimalloc 3.6.1 is listed except the `deprecated_*` ones,
-/// which mimalloc no longer reads. Each variant is named after the option in
+/// Every option of mimalloc 3.7.0 is listed except the `deprecated_*` ones,
+/// which mimalloc no longer reads (`unsafe_guarded_precise` became one in
+/// 3.7.0, so `UnsafeGuardedPrecise` is gone). Each variant is named after the option in
 /// `util/options.c`; [`Option::name`] gives that name, and `MIMALLOC_<NAME>` is the
 /// environment variable that sets it.
 ///
@@ -43,12 +44,15 @@ unsafe extern "C" {
 ///
 /// For an option that only works from process start, use its environment
 /// variable or a build-time default (the `no_thp` cargo feature sets
-/// [`Option::AllowThp`] to 0 at build time).
+/// [`Option::AllowThp`] to 0 at build time). With the `secure` cargo feature,
+/// mimalloc 3.7.0 ignores every environment variable except
+/// `MIMALLOC_SHOW_STATS`, `MIMALLOC_VERBOSE` and `MIMALLOC_ALLOW_THP`, so
+/// options that are read only at start-up keep their defaults there.
 ///
-/// Options are process-wide. mimalloc stores them without locking (reads and
-/// writes are word-sized and tolerated as races by design), so set them early
-/// in `main`, before spawning threads, to have every thread see the same
-/// value from the start.
+/// Options are process-wide. Since mimalloc 3.7.0 each option is stored
+/// atomically, so it can be set from any thread while others read it; still,
+/// set options early in `main`, before spawning threads, so that every thread
+/// sees the same value from the start.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(i32)]
 #[non_exhaustive]
@@ -72,10 +76,14 @@ pub enum Option {
     PurgeDecommits = 5,
     /// Use large OS pages (2 or 4 MiB, `MAP_HUGETLB`) when available; implies
     /// eager commit (default: off). Read when mimalloc maps OS memory, so it
-    /// applies to arenas reserved after the call.
+    /// applies to arenas reserved after the call. Ignored with the `secure`
+    /// cargo feature since mimalloc 3.7.0 (large pages are pinned and cannot
+    /// have guard pages).
     AllowLargeOsPages = 6,
     /// Reserve this many 1 GiB huge OS pages at start-up (default: 0).
-    /// At process start only: setting it from `main` has no effect.
+    /// At process start only: setting it from `main` has no effect. With the
+    /// `secure` cargo feature the reservation fails with a warning since
+    /// mimalloc 3.7.0, as huge pages are pinned and cannot have guard pages.
     ReserveHugeOsPages = 7,
     /// NUMA node to reserve [`Option::ReserveHugeOsPages`] on; -1 spreads
     /// them over all nodes (default: -1). At process start only.
@@ -148,10 +156,6 @@ pub enum Option {
     /// this crate (no `MI_GUARDED`). Setting it below [`Option::GuardedMin`]
     /// lowers that option too.
     GuardedMax = 30,
-    /// Place guarded objects right before the guard page, ignoring their
-    /// alignment (default: off). Named `guarded_precise` before mimalloc
-    /// 3.6.0. No effect in this crate (no `MI_GUARDED`).
-    UnsafeGuardedPrecise = 31,
     /// Guard one in this many objects in the guarded size range
     /// (default: 0). No effect in this crate (no `MI_GUARDED`).
     GuardedSampleRate = 32,
@@ -281,6 +285,12 @@ pub enum Option {
     /// a purge. [`Option::get_size`]
     /// returns bytes.
     ArenaPurgeImmediateSize = 53,
+    /// Use arm64 memory tagging (MTE) when the CPU and OS support it; on
+    /// Linux, 2 = synchronous, 3 = asynchronous, 4 = the kernel's preferred
+    /// tag check mode (default: 1). New in mimalloc 3.7.0. No effect in this
+    /// crate, which does not build mimalloc with `MI_MTE`. At process start
+    /// only.
+    Mte = 54,
 }
 
 impl Option {
@@ -308,7 +318,6 @@ impl Option {
         Option::RetryOnOom,
         Option::GuardedMin,
         Option::GuardedMax,
-        Option::UnsafeGuardedPrecise,
         Option::GuardedSampleRate,
         Option::GuardedSampleSeed,
         Option::GenericCollect,
@@ -331,6 +340,7 @@ impl Option {
         Option::ProfileSampleRate,
         Option::StatsMergeThreshold,
         Option::ArenaPurgeImmediateSize,
+        Option::Mte,
     ];
 
     /// The option's name in `util/options.c`, such as `"purge_delay"`. The
@@ -359,7 +369,6 @@ impl Option {
             Option::RetryOnOom => "retry_on_oom",
             Option::GuardedMin => "guarded_min",
             Option::GuardedMax => "guarded_max",
-            Option::UnsafeGuardedPrecise => "unsafe_guarded_precise",
             Option::GuardedSampleRate => "guarded_sample_rate",
             Option::GuardedSampleSeed => "guarded_sample_seed",
             Option::GenericCollect => "generic_collect",
@@ -382,6 +391,7 @@ impl Option {
             Option::ProfileSampleRate => "profile_sample_rate",
             Option::StatsMergeThreshold => "stats_merge_threshold",
             Option::ArenaPurgeImmediateSize => "arena_purge_immediate_size",
+            Option::Mte => "mte",
         }
     }
 

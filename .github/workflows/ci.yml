@@ -29,8 +29,9 @@ jobs:
         with:
           submodules: recursive
 
+      # Same toolchain as rust-toolchain.toml.
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100
 
       - name: Build
         run: cargo build --verbose --features "${{ matrix.config.features }}"
@@ -70,11 +71,12 @@ jobs:
       - name: Install Rust 1.85
         uses: dtolnay/rust-toolchain@1.85
 
+      # `+1.85` overrides rust-toolchain.toml, which pins 1.100.
       - name: Build
-        run: cargo build --verbose
+        run: cargo +1.85 build --verbose
 
       - name: Test
-        run: cargo test --verbose
+        run: cargo +1.85 test --verbose
 
       - name: Show build script output on failure
         if: failure()

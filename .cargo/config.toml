@@ -1,0 +1,5 @@
+# Dependency cooldown (Cargo 1.100+, ignored by older Cargo): when resolving,
+# e.g. on `cargo update`, skip registry versions published less than 2 days
+# ago, unless they are already in Cargo.lock.
+[registry]
+global-min-publish-age = "2 days"

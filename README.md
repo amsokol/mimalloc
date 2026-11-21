@@ -18,10 +18,10 @@ git clone --recurse-submodules https://github.com/amsokol/mimalloc.git
 # Or update existing submodule to a specific tag
 cd c_src/mimalloc
 git fetch origin
-git checkout v3.6.1  # Replace with desired tag
+git checkout v3.7.0  # Replace with desired tag
 cd ../..
 git add c_src/mimalloc
-git commit -m "Update mimalloc to v3.6.1"
+git commit -m "Update mimalloc to v3.7.0"
 ```
 
 Or checkout a specific commit:
@@ -41,7 +41,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.1" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.7.0" }
 ```
 
 Set `MiMalloc` as the global allocator in your application:
@@ -60,17 +60,17 @@ fn main() {
 
 ## Features
 
-| Feature    | Description                                                                                                                                           |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation                                                             |
-| `override` | Overrides the standard C `malloc`/`free` interface so all C library allocations also use mimalloc (Unix/macOS only; ignored on Windows static builds) |
-| `no_thp`   | Builds mimalloc with transparent huge pages off by default (`MI_DEFAULT_ALLOW_THP=0`, like mimalloc's CMake option `MI_NO_THP`); Linux/Android only, no effect elsewhere. `MIMALLOC_ALLOW_THP=1` still turns them back on |
+| Feature    | Description                                                                                                                                                                                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `secure`   | Builds mimalloc in secure mode — guard pages, encrypted free lists, randomized allocation. Since mimalloc 3.7.0 it also ignores every `MIMALLOC_*` environment variable except `MIMALLOC_SHOW_STATS`, `MIMALLOC_VERBOSE` and `MIMALLOC_ALLOW_THP`; `Option::set` still works |
+| `override` | Overrides the standard C `malloc`/`free` interface so all C library allocations also use mimalloc (Unix/macOS only; ignored on Windows static builds)                                                                                                                        |
+| `no_thp`   | Builds mimalloc with transparent huge pages off by default (`MI_DEFAULT_ALLOW_THP=0`, like mimalloc's CMake option `MI_NO_THP`); Linux/Android only, no effect elsewhere. `MIMALLOC_ALLOW_THP=1` still turns them back on                                                    |
 
 Enable features in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.1", features = ["secure"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.7.0", features = ["secure"] }
 ```
 
 ## API
@@ -117,7 +117,7 @@ A program can get the same result without environment variables:
 
 ```toml
 [dependencies]
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.6.1", features = ["no_thp"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.7.0", features = ["no_thp"] }
 ```
 
 ```rust
@@ -147,7 +147,7 @@ fn main() {
 | `ShowStats`, `Verbose`, `ShowErrors` | off | Print statistics at exit, verbose messages, errors | Yes |
 | `ReserveOsMemory`, `ReserveHugeOsPages`, `UseNumaNodes`, `MaxVabits`, `PagemapCommit`, `MaxErrors`, `MaxWarnings` | | Start-up reservations and limits | No: read at start only |
 
-The rustdoc of each `Option` variant covers every option, including the reclaim, NUMA, guarded-page (no effect: this crate does not build with `MI_GUARDED`), and exit options. An environment variable `MIMALLOC_<NAME>` still overrides a build-time default, and `Option::set` overrides both.
+The rustdoc of each `Option` variant covers every option, including the reclaim, NUMA, guarded-page (no effect: this crate does not build with `MI_GUARDED`), memory-tagging (`Mte`, no effect: no `MI_MTE`), and exit options. An environment variable `MIMALLOC_<NAME>` still overrides a build-time default (with the `secure` feature only for `show_stats`, `verbose` and `allow_thp`), and `Option::set` overrides both.
 
 When measuring, use `process_info().current_rss`: on Unix release builds mimalloc's commit counter does not drop when it purges, because it purges with `MADV_DONTNEED` and keeps the range committed in its books. The test `tests/purge.rs` allocates 400 MiB in pieces, frees it, and checks that the RSS goes back down with `purge_delay` 0; with the defaults it stays at the peak.
 
