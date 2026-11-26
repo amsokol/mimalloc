@@ -146,7 +146,9 @@ fn linux_vm_rss() -> std::option::Option<u64> {
 /// pass.
 ///
 /// It only collects the calling thread's heap; other threads collect their
-/// own heaps as they allocate.
+/// own heaps as they allocate. The purge pass runs over the arenas also on a
+/// thread that has no mimalloc heap, because it never allocated through
+/// mimalloc (since mimalloc 3.7.1; before, the call did nothing there).
 #[inline]
 pub fn collect(force: bool) {
     // SAFETY: `mi_collect` takes a plain `bool` and has no preconditions;

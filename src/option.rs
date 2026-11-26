@@ -12,7 +12,7 @@ unsafe extern "C" {
 
 /// A mimalloc runtime option (`mi_option_t` in `mimalloc.h`).
 ///
-/// Every option of mimalloc 3.7.0 is listed except the `deprecated_*` ones,
+/// Every option of mimalloc 3.7.1 is listed except the `deprecated_*` ones,
 /// which mimalloc no longer reads (`unsafe_guarded_precise` became one in
 /// 3.7.0, so `UnsafeGuardedPrecise` is gone). Each variant is named after the option in
 /// `util/options.c`; [`Option::name`] gives that name, and `MIMALLOC_<NAME>` is the
@@ -45,9 +45,12 @@ unsafe extern "C" {
 /// For an option that only works from process start, use its environment
 /// variable or a build-time default (the `no_thp` cargo feature sets
 /// [`Option::AllowThp`] to 0 at build time). With the `secure` cargo feature,
-/// mimalloc 3.7.0 ignores every environment variable except
-/// `MIMALLOC_SHOW_STATS`, `MIMALLOC_VERBOSE` and `MIMALLOC_ALLOW_THP`, so
-/// options that are read only at start-up keep their defaults there.
+/// mimalloc (since 3.7.0) ignores every environment variable except
+/// `MIMALLOC_SHOW_STATS`, `MIMALLOC_VERBOSE`, `MIMALLOC_ALLOW_THP` and, since
+/// 3.7.1, `MIMALLOC_SHOW_ERRORS`, so other options that are read only at
+/// start-up keep their defaults there. In any build, a process with elevated
+/// privileges (such as setuid or setgid on Unix) ignores all of them; with
+/// this crate that works since mimalloc 3.7.1.
 ///
 /// Options are process-wide. Since mimalloc 3.7.0 each option is stored
 /// atomically, so it can be set from any thread while others read it; still,
@@ -211,7 +214,8 @@ pub enum Option {
     ///   inherit that setting across `fork` and `execve`. Setting the option
     ///   from `main` does **not** do this.
     /// - **Per arena**: when it is not 0, mimalloc marks each new OS mapping
-    ///   (each arena) with `madvise(MADV_HUGEPAGE)`, which is what
+    ///   that has room for a whole, aligned huge page (such as an arena) with
+    ///   `madvise(MADV_HUGEPAGE)`, which is what
     ///   lets the kernel use huge pages there when
     ///   `/sys/kernel/mm/transparent_hugepage/enabled` is `madvise`. Setting
     ///   it to 0 from `main` only affects arenas reserved after the call; the
